@@ -14,5 +14,9 @@ jobs:
       uses: snok/install-poetry@v1
     - name: 'Install dependencies'
       run: poetry install --no-interaction --no-root
+    - name: 'Install PyTorch'
+      run: poetry run poe torch-linux_win-cuda102
+    - name: 'Install PyTorch Geometric'
+      run: poetry run poe pyg-linux_win-cuda102
     - name: 'Run unit-tests'
       run: poetry run pytest
