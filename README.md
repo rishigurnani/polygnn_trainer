@@ -5,6 +5,20 @@ This is a repo for training neural nets using PyTorch. Currently, `polygnn_train
 - Submodel training (and limited analysis of training metrics, provided by the `parse` module)
 - Submodel saving & loading
 - Composing the submodels into an ensemble for inference
+## Installation
+This repository is currently set up to run on 1) Mac OSX and 2) Linux/Windows machines with CUDA 10.2. Please raise a GitHub issue if you want to use this repo with a different configuration. Otherwise, please follow these steps for installation:
+
+1. Install [poetry](https://python-poetry.org/) on your machine.
+2. If Python3.7 is installed on your machine skip to step 3, if not you will need to install it. There are many ways to do this, one option is detailed below:
+    * Install [Homebrew](https://brew.sh/) on your machine.
+    * Run `brew install python@3.7`. Take note of the path to the python executable.
+3. Clone this repo on your machine.
+4. Open a terminal at the root directory of this repository.
+5. Run `poetry env use /path/to/python3.7/executable`. If you installed Python3.7 with Homebrew, the path may be something like
+  `/usr/local/Cellar/python\@3.7/3.7.13_1/bin/python3.7`.
+7. Run `poetry install`.
+8. If your machine is a Mac, run `poetry run poe torch-osx`. If not, run `poetry run poe torch-linux_win-cuda102`.
+9. If your machine is a Mac, run `poetry run poe pyg-osx`. If not, run `poetry run poe pyg-linux_win-cuda102`.
 ## Usage
 A usage pattern may look something like below:
 - Create a "melted" pandas Dataframe offline. Melting is usually required for multi-task models. Split this dataset into training+val and test set. It is required that node features and graph features are provided in several dictionaries; one dictionary per row of the melted dataframe.
