@@ -118,6 +118,7 @@ def test_ensemble_trainer(fixture, request, example_data):
         hps.batch_size.set_value(x[1])
         hps.dropout_pct.set_value(x[2])
         hps.capacity.set_value(x[3])
+        hps.activation.set_value(nn.functional.leaky_relu)
 
         # trainConfig for the hp search
         tc_search = trainConfig(
@@ -136,7 +137,7 @@ def test_ensemble_trainer(fixture, request, example_data):
             output_dim=output_dim,
             hps=hps,
         )
-        val_rmse = train_submodel( # val_rmse = RMSE on the validation data set, contained in 'val_pts'.
+        val_rmse = train_submodel(  # val_rmse = RMSE on the validation data set, contained in 'val_pts'.
             model,
             train_pts,
             val_pts,
@@ -158,6 +159,7 @@ def test_ensemble_trainer(fixture, request, example_data):
     hps.batch_size.set_value(opt_obj.x[1])
     hps.dropout_pct.set_value(opt_obj.x[2])
     hps.capacity.set_value(opt_obj.x[3])
+    hps.activation.set_value(nn.functional.leaky_relu)
     # create inputs for train_kfold_ensemble
     model_constructor = lambda: models.MlpOut(
         input_dim=input_dim,
