@@ -88,7 +88,7 @@ A usage pattern may look something like below:
   ```
 - Run inference on the ensemble using `pt.infer.eval_ensemble`. See below for example usage. In this example, if the loaded ensemble is a `LinearEnsemble` then `n_passes` will need to be passed in as a `kwarg`. Likewise, the `forward` method of other models may require other fields. Each of these fields can be passed into `ensemble_kwargs_dict`.
   ```python
-  y_val, y_val_mean_hat, y_val_std_hat = pt.infer.eval_ensemble(
+  y_val, y_val_mean_hat, y_val_std_hat, selectors = pt.infer.eval_ensemble(
     ensemble,
     "path/to/model/root/",
     dataframe,

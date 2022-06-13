@@ -167,7 +167,7 @@ def sort_pandas_column(dataframe, colname, srt_keys):
     def helper(row):
         feat_dict = row[colname]
         arr = np.array([feat_dict[x] for x in srt_keys], dtype=float)
-        row[colname] = arr
+        row[f"{colname}_array"] = arr
         return row
 
     dataframe = dataframe.apply(helper, axis=1)
@@ -334,7 +334,6 @@ def prepare_data(
     # append selectors to dataframe
     n_props = len(prop_cols)
     dataframe = append_selectors(dataframe, selectors, n_props, for_train)
-
     if for_train:
         # initialize scaler for each property
         scaler_dict = {prop: SequentialScaler() for prop in prop_cols}
@@ -384,9 +383,21 @@ def prepare_data(
         # prepare selector
         copy_attribute_safe(x, data, ks._F_SELECTORS, fillna=deepcopy(fillna))
         # prepare node-features
-        copy_attribute_safe(x, data, ks._F_NODE, fillna=deepcopy(fillna))
+        copy_attribute_safe(
+            via=x,
+            to=data,
+            attr_name_via=f"{ks._F_NODE}_array",
+            attr_name_to=ks._F_NODE,
+            fillna=deepcopy(fillna),
+        )
         # prepare graph-features
-        copy_attribute_safe(x, data, ks._F_GRAPH, fillna=deepcopy(fillna))
+        copy_attribute_safe(
+            via=x,
+            to=data,
+            attr_name_via=f"{ks._F_GRAPH}_array",
+            attr_name_to=ks._F_GRAPH,
+            fillna=deepcopy(fillna),
+        )
         if not for_train:
             # if we are not training, then we need to copy "prop" over
             # to make sure we scale correctly inside the ensemble

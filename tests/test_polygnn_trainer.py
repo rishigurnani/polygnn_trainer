@@ -49,7 +49,12 @@ def example_data():
         "[*]C(O)C[*]",
         "[*]C(CCC)C[*]",
     ] * 2
-    data = {"prop": properties, "value": values, "smiles_string": smiles}
+    data = {
+        "prop": properties,
+        "value": values,
+        "smiles_string": smiles,
+        "graph_feats": [{}] * len(smiles),
+    }
     dataframe = pd.DataFrame(data)
     return {
         "dataframe": dataframe,
@@ -93,6 +98,7 @@ def test_ensemble_trainer(fixture, request, example_data):
     dataframe, scaler_dict = prepare_train(
         example_data["dataframe"], morgan_featurizer, root_dir=root
     )
+    assert dataframe.graph_feats.values[0] == {}
     training_df, val_df = train_test_split(
         dataframe,
         test_size=constants.VAL_FRAC,
