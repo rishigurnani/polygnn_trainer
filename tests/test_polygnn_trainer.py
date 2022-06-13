@@ -136,7 +136,7 @@ def test_ensemble_trainer(fixture, request, example_data):
             output_dim=output_dim,
             hps=hps,
         )
-        val_rmse = train_submodel( # val_rmse = validation RMSE
+        val_rmse = train_submodel( # val_rmse = RMSE on the validation data set, contained in 'val_pts'.
             model,
             train_pts,
             val_pts,
