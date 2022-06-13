@@ -173,7 +173,7 @@ class LogTenScaler(Scaler):
     def inverse_transform(self, y):
         y = self.fmt_input(y)
 
-        return 10 ** y
+        return 10**y
 
 
 class LogTenDeltaScaler(Scaler):
@@ -190,7 +190,7 @@ class LogTenDeltaScaler(Scaler):
     def inverse_transform(self, y):
         y = self.fmt_input(y)
 
-        return (10 ** y) - 1
+        return (10**y) - 1
 
 
 class MinMaxScaler(Scaler):

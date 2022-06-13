@@ -2,11 +2,11 @@ import re
 
 PACKAGE_NAME = "polygnn_trainer"
 RANDOM_SEED = 123
-DL_STOP_TRAIN_R2 = -(10 ** 8)
+DL_STOP_TRAIN_R2 = -(10**8)
 GRADIENT_HISTORY_LENGTH = 5  # the number of latest epochs for which
 # the gradients will be stored in memory
 LOG_THRESHOLD = (
-    10 ** 3
+    10**3
 )  # if properties have a range above this value, we will use log-delta scaling
 BS_MAX = 450
 VAL_FRAC = 0.2  # fraction of data to use for validation
