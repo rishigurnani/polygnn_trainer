@@ -8,6 +8,7 @@ authors = ["Rishi Gurnani <rgurnani96@gmail.com>"]
 python = "^3.7"
 numpy = "^1.17"
 wheel = "^0.37.1"
+pandas = ">=1.1,<1.2"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
