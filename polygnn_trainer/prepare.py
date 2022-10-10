@@ -72,8 +72,9 @@ def prepare_train(
             node_feats, and graph_feats. This dataframe should not contain
             any na.
         smiles_featurizer: A function that takes in a smiles string
-            and returns its features. For polymers, the smiles strings
-            are of type '[*]CC[*]' or the equivalent for ladders.
+            and returns its features as a pyg.data.Data object. For
+            polymers, the smiles strings should be of type '[*]CC[*]'
+            or the equivalent for ladders.
     Outputs:
         dataframe (pd.DataFrame): The input dataframe with two columns
             added: data and selector
