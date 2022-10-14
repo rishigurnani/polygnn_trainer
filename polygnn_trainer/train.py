@@ -107,10 +107,10 @@ def train_submodel(
     Train a model and save it to tc.model_save_path.
     
     Keyword arguments:
-        model (torch_commons.std_module.StandardModule): The model architecture.
+        model (polygnn_trainer.std_module.StandardModule): The model architecture.
         train_pts (List[pyg.data.Data]): The training data.
         val_pts (List[pyg.data.Data]): The validation data.
-        scalers (Dict[str, torch_commons.scale.SequentialScaler]): Scalers for
+        scalers (Dict[str, polygnn_trainer.scale.SequentialScaler]): Scalers for
             each property/task being modeled.
     """
     # error handle inputs
