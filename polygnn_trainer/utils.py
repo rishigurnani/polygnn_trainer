@@ -13,6 +13,7 @@ import random
 import numpy as np
 import torch
 import polygnn_trainer.constants as ks
+import warnings
 
 # fix random seed
 random.seed(2)
@@ -149,11 +150,12 @@ def analyze_gradients(named_parameters, allow_errors=False):
                 ave_grads.extend(ave_grad.numpy().tolist())
                 max_grads.extend(max_grad.numpy().tolist())
                 layers.append(n)
-            except:
-                print(n)
-                print(p.grad)
-                if not allow_errors:
-                    raise BaseException
+            except Exception as e:
+                warnings.warn("The parameter {n} has the following invalid gradient:\n{p.grad}.")
+                if allow_errors:
+                    pass
+                else:
+                    raise e
     ave_grads = np.array(ave_grads)
     max_grads = np.array(max_grads)
     print("\n..Ave_grads: ", list(zip(layers, ave_grads)))
