@@ -59,19 +59,23 @@ def compute_batch_regression_metrics(y, y_hat, selectors, property_names, debug=
 
     return_dict = {}
     n_props = len(property_names)
-    for ind in range(n_props):
-        name = property_names[ind]
-        data_subset = [j for j, x in enumerate(selectors) if x[ind] != 0.0]
-        if len(data_subset) > 0:
-            y_subset = y[data_subset]
-            y_hat_subset = y_hat[data_subset]
-            return_dict[name] = compute_regression_metrics(
-                y_subset, y_hat_subset, mt=False
-            )
-        else:
-            # if there are no samples correspond to name then the error metrics must be nan
-            return_dict[name] = nan, nan
-
+    if n_props > 1:
+        for ind in range(n_props):
+            name = property_names[ind]
+            data_subset = [j for j, x in enumerate(selectors) if x[ind] != 0.0]
+            if len(data_subset) > 0:
+                y_subset = y[data_subset]
+                y_hat_subset = y_hat[data_subset]
+                return_dict[name] = compute_regression_metrics(
+                    y_subset, y_hat_subset, mt=False
+                )
+            else:
+                # if there are no samples correspond to name then the error metrics must be nan
+                return_dict[name] = nan, nan
+    else:
+        return_dict[property_names[0]] = compute_regression_metrics(
+            y, y_hat, mt=False
+        )
     return return_dict
 
 
