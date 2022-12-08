@@ -12,7 +12,7 @@ from collections import deque
 import random
 from os.path import join as path_join
 from sklearn.model_selection import KFold
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 try:
     from . import constants
@@ -103,7 +103,16 @@ def train_submodel(
     scalers,
     tc,  # train_config
 ):
-
+    """
+    Train a model and save it to tc.model_save_path.
+    
+    Keyword arguments:
+        model (polygnn_trainer.std_module.StandardModule): The model architecture.
+        train_pts (List[pyg.data.Data]): The training data.
+        val_pts (List[pyg.data.Data]): The validation data.
+        scalers (Dict[str, polygnn_trainer.scale.SequentialScaler]): Scalers for
+            each property/task being modeled.
+    """
     # error handle inputs
     if tc.model_save_path:
         if not tc.model_save_path.endswith(".pt"):
@@ -162,7 +171,7 @@ def train_submodel(
             model, optimizer = initialize_training(
                 model, tc.hps.r_learn.value, tc.device
             )
-        # augment data, if necessary
+        # Perform augmentations that cannot be done on a GPU.
         if tc.get_train_dataloader:
             train_pts = tc.get_train_dataloader()
             train_loader = DataLoader(
@@ -175,6 +184,9 @@ def train_submodel(
         model.train()
         for _, data in enumerate(train_loader):  # loop through training batches
             data = data.to(tc.device)
+            # Perform GPU-compatible augmentations.
+            for fn in tc.augmentations:
+                data = fn(data)
             optimizer.zero_grad()
             output = amp_train(model, data, optimizer, tc, selector_dim)
             y += data.y.flatten().cpu().numpy().tolist()
@@ -364,24 +376,24 @@ class trainConfig:
     # need to be set manually
     loss_obj: nn.Module
     amp: bool  # when using T2 this should be set to False
-    # hps: HpConfig = None
-    # loss_obj: nn.Module = None
-    # device: torch_device = None
-    # amp: bool = False # this should automatically
-
-    # initialized during instantiation
+    # ########################################################
+    # Let's give a default value for the remaining
+    # attributes.
+    # ########################################################
+    augmentations: list = field(default_factory=list)
     device: torch_device = torch_device(
         "cuda" if cuda.is_available() else "cpu"
     )  # specify GPU
     epoch_suffix: str = ""
     multi_head: bool = None
-
-    # set dynamically inside train_kfold_ensemble, so
-    # we can set each attribute to None on instantiation
+    # The following attributes are set dynamically inside
+    # train_kfold_ensemble, so let's set them to None
+    # now.
     hps: HpConfig = None
     model_save_path: str = None
     fold_index = None
     get_train_dataloader = None
+    # ########################################################
 
 
 def prepare_train(

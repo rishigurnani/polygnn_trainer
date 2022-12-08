@@ -13,6 +13,7 @@ import random
 import numpy as np
 import torch
 import polygnn_trainer.constants as ks
+import warnings
 
 # fix random seed
 random.seed(2)
@@ -58,19 +59,23 @@ def compute_batch_regression_metrics(y, y_hat, selectors, property_names, debug=
 
     return_dict = {}
     n_props = len(property_names)
-    for ind in range(n_props):
-        name = property_names[ind]
-        data_subset = [j for j, x in enumerate(selectors) if x[ind] != 0.0]
-        if len(data_subset) > 0:
-            y_subset = y[data_subset]
-            y_hat_subset = y_hat[data_subset]
-            return_dict[name] = compute_regression_metrics(
-                y_subset, y_hat_subset, mt=False
-            )
-        else:
-            # if there are no samples correspond to name then the error metrics must be nan
-            return_dict[name] = nan, nan
-
+    if n_props > 1:
+        for ind in range(n_props):
+            name = property_names[ind]
+            data_subset = [j for j, x in enumerate(selectors) if x[ind] != 0.0]
+            if len(data_subset) > 0:
+                y_subset = y[data_subset]
+                y_hat_subset = y_hat[data_subset]
+                return_dict[name] = compute_regression_metrics(
+                    y_subset, y_hat_subset, mt=False
+                )
+            else:
+                # if there are no samples correspond to name then the error metrics must be nan
+                return_dict[name] = nan, nan
+    else:
+        return_dict[property_names[0]] = compute_regression_metrics(
+            y, y_hat, mt=False
+        )
     return return_dict
 
 
@@ -149,11 +154,12 @@ def analyze_gradients(named_parameters, allow_errors=False):
                 ave_grads.extend(ave_grad.numpy().tolist())
                 max_grads.extend(max_grad.numpy().tolist())
                 layers.append(n)
-            except:
-                print(n)
-                print(p.grad)
-                if not allow_errors:
-                    raise BaseException
+            except Exception as e:
+                warnings.warn("The parameter {n} has the following invalid gradient:\n{p.grad}.")
+                if allow_errors:
+                    pass
+                else:
+                    raise e
     ave_grads = np.array(ave_grads)
     max_grads = np.array(max_grads)
     print("\n..Ave_grads: ", list(zip(layers, ave_grads)))
