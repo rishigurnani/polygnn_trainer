@@ -101,7 +101,8 @@ def train_submodel(
     train_pts,
     val_pts,
     scalers,
-    tc,  # train_config
+    tc,
+    break_bad_grads=True,
 ):
     """
     Train a model and save it to tc.model_save_path.
@@ -112,6 +113,11 @@ def train_submodel(
         val_pts (List[pyg.data.Data]): The validation data.
         scalers (Dict[str, polygnn_trainer.scale.SequentialScaler]): Scalers for
             each property/task being modeled.
+        tc (torch_commons.train.trainConfig)
+        break_bad_grads (bool):  If True, we will exit the training loop
+            after noticing exploding/vanishing gradients early in training.
+            If False, we will re-initialize the model after noticing
+            exploding/vanishing gradients early in training. 
     """
     # error handle inputs
     if tc.model_save_path:
@@ -161,7 +167,7 @@ def train_submodel(
             print("Exploding errors detected")
         if exploding_grads:
             print("Exploding gradients detected")
-        if (vanishing_grads or exploding_grads) and (epoch < 50):
+        if (vanishing_grads or exploding_grads) and (epoch < 50) and break_bad_grads:
             break
         # if the errors or gradients are messed up later in training,
         # let us just re-initialize
@@ -363,7 +369,7 @@ def train_kfold_ensemble(
             )  # get one of multiple equivalent graphs for training data
         model = model_constructor()
         train_config.fold_index = ind  # add the fold index to train_config
-        submodel_trainer(model, train_pts, val_pts, scaler_dict, train_config)
+        submodel_trainer(model, train_pts, val_pts, scaler_dict, train_config, break_bad_grads=False)
         ind += 1
 
 
