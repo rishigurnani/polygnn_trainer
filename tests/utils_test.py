@@ -34,7 +34,7 @@ class MathModel2(StandardModule):
         return x[:, 0] - x[:, 1]
 
 
-def trainer_MathModel(model, train_pts, val_pts, scaler_dict, tc):
+def trainer_MathModel(model, train_pts, val_pts, scaler_dict, tc, *args, **kwargs):
     # this function will "train" the model and save it
     if tc.model_save_path:
         torch_save(model.state_dict(), tc.model_save_path)
