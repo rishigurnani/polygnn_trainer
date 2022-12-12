@@ -106,7 +106,7 @@ def train_submodel(
 ):
     """
     Train a model and save it to tc.model_save_path.
-    
+
     Keyword arguments:
         model (polygnn_trainer.std_module.StandardModule): The model architecture.
         train_pts (List[pyg.data.Data]): The training data.
@@ -117,7 +117,7 @@ def train_submodel(
         break_bad_grads (bool):  If True, we will exit the training loop
             after noticing exploding/vanishing gradients early in training.
             If False, we will re-initialize the model after noticing
-            exploding/vanishing gradients early in training. 
+            exploding/vanishing gradients early in training.
     """
     # error handle inputs
     if tc.model_save_path:
@@ -369,7 +369,9 @@ def train_kfold_ensemble(
             )  # get one of multiple equivalent graphs for training data
         model = model_constructor()
         train_config.fold_index = ind  # add the fold index to train_config
-        submodel_trainer(model, train_pts, val_pts, scaler_dict, train_config, break_bad_grads=False)
+        submodel_trainer(
+            model, train_pts, val_pts, scaler_dict, train_config, break_bad_grads=False
+        )
         ind += 1
 
 

@@ -73,9 +73,7 @@ def compute_batch_regression_metrics(y, y_hat, selectors, property_names, debug=
                 # if there are no samples correspond to name then the error metrics must be nan
                 return_dict[name] = nan, nan
     else:
-        return_dict[property_names[0]] = compute_regression_metrics(
-            y, y_hat, mt=False
-        )
+        return_dict[property_names[0]] = compute_regression_metrics(y, y_hat, mt=False)
     return return_dict
 
 
@@ -155,7 +153,9 @@ def analyze_gradients(named_parameters, allow_errors=False):
                 max_grads.extend(max_grad.numpy().tolist())
                 layers.append(n)
             except Exception as e:
-                warnings.warn("The parameter {n} has the following invalid gradient:\n{p.grad}.")
+                warnings.warn(
+                    "The parameter {n} has the following invalid gradient:\n{p.grad}."
+                )
                 if allow_errors:
                     pass
                 else:
