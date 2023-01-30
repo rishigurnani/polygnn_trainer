@@ -1,6 +1,5 @@
 # polygnn_trainer
-## Description
-This is a repo for training neural nets using PyTorch. Currently, `polygnn_trainer` (pt) contains general code for the following tasks
+This repository contains one of the custom packages used to train the machine learning models presented in a companion paper, [*polyGNN: Multitask graph neural networks for polymer informatics*](https://arxiv.org/abs/2209.13557). Currently, `polygnn_trainer` (pt) contains general code for the following tasks
 - Data preparation
 - Submodel training (and limited analysis of training metrics, provided by the `parse` module)
 - Submodel saving & loading
@@ -20,6 +19,7 @@ This repository is currently set up to run on 1) Mac OSX and 2) Linux/Windows ma
 8. If your machine is a Mac, run `poetry run poe torch-osx`. If not, run `poetry run poe torch-linux_win-cuda102`.
 9. If your machine is a Mac, run `poetry run poe pyg-osx`. If not, run `poetry run poe pyg-linux_win-cuda102`.
 ## Usage
+### General usage
 A usage pattern may look something like below:
 - Create a "melted" pandas Dataframe offline. Melting is usually required for multi-task models. Split this dataset into training+val and test set. It is required that node features and graph features are provided in several dictionaries; one dictionary per row of the melted dataframe.
 - Pass the training+val DataFrame into `pt.train.prepare_train`. The outputs will be the dataframe, updated with featurized data, and dictionary of scalers. One scaler per task. Additionally, some metadata on training features will be saved to path input to `root_dir`. This will be useful to order features during inference.
@@ -97,6 +97,12 @@ A usage pattern may look something like below:
     ensemble_kwargs_dict={}
   )
   ```
+### `example.py`
+Much of the information in the "General usage" section is combined into one file, `example.py`. Here we use training data located in the directory `sample_data` to train an ensemble model (composed of several submodels). The submodels, by default, are saved in a directory named `example_models`. The data in `sample_data` is a small subset of the DFT data used to train the models in the companion paper. A complete set of the DFT data can be found at [Khazana](https://khazana.gatech.edu/).
+
+To train models run: `poetry run python example.py`. This should not take longer than 3 minutes on a machine with at least 8GB of free GPU memory. To manually specify the device you want to use for training, set the device flag. For example `poetry run python example.py --device cpu`. Otherwise, the device will automatically be chosen.
+
+Looking at `sample_data/sample.csv`, you will notice that this dataset contains multiple different properties (e.g., band gap, electron affinity, etc.). In `example.py`, we use this data to train a multitask model, capable of predicting each property. To train your own multitask model, you can replace `sample_data/sample.csv` with your own dataset containing multiple properties. Single task models are also supported.
 ## Citation
 If you use this repository in your work please consider citing us.
 ```
