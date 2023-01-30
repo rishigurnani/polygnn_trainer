@@ -62,7 +62,7 @@ class LinearEnsemble(nn.Module):
         """
         if monte_carlo:
             warn_msg = (
-                "Monte Carlo (MC) drop out is turned on. As of version 0.1.1, "
+                "Monte Carlo (MC) drop out is turned on. As of version 0.2.0, "
                 + "the current implementation of MC drop out is not recommended, "
                 + "as it may lead to large errors in prediction. However, for "
                 + "backwards compatibility, MC dropout is the default option. "
@@ -121,8 +121,7 @@ class LinearEnsemble(nn.Module):
             )
         else:
             all_model_preds = (
-                zeros((n_submodels, batch_size, self.submodel_dict[0].output_dim))
-                .squeeze(-1)
+                zeros((n_submodels, batch_size))
                 .to(self.device)
             )
             # TODO: Parallelize?
