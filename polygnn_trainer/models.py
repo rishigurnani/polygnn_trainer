@@ -1,10 +1,11 @@
-from torch import nn, zeros, manual_seed, tensor, cat
+from torch import nn, zeros, manual_seed, tensor
 
 from . import constants
 from polygnn_trainer import infer
 from .utils import get_unit_sequence
 from polygnn_trainer import layers
 from .std_module import StandardModule
+import warnings
 
 
 class MlpOut(StandardModule):
@@ -50,44 +51,95 @@ class LinearEnsemble(nn.Module):
         self.device = device
         self.scalers = scalers  # dictionary
 
-    def forward(self, data, n_passes):
+    def forward(self, data, n_passes=None, monte_carlo=True):
         """
-        Compute the forward pass of this model
+        Compute the forward pass of this model.
+
+        Keyword arguments:
+            n_passes: The number of forward passes to perform. This value
+                is only meaningful when `monte_carlo` is set to `True`.
+            monte_carlo: If True, Monte Carlo drop out is performed.
         """
+        if monte_carlo:
+            warn_msg = (
+                "Monte Carlo (MC) drop out is turned on. As of version 0.1.1, "
+                + "the current implementation of MC drop out is not recommended, "
+                + "as it may lead to large errors in prediction. However, for "
+                + "backwards compatibility, MC dropout is the default option. "
+                + "You can turn it off by setting `monte_carlo` to `False` in "
+                + "the __init__ method of this class."
+            )
+            warnings.warn(warn_msg)
+            dropout_mode = "train"
+        else:
+            dropout_mode = "test"
+        for _, model in self.submodel_dict.items():
+            infer._model_eval_mode(model, dropout_mode=dropout_mode)
+        if not monte_carlo and n_passes != None:
+            warn_msg = (
+                "The value you passed in for `n_passes` has been ignored "
+                + f"since `monte_carlo` is set to `{monte_carlo}`."
+            )
+            warnings.warn(warn_msg)
         # The forward pass of ensembles should always return the prediction
         # *mean* and the prediction *standard deviation*
         manual_seed(constants.RANDOM_SEED)
         # We set the seed above so that all forward passes are reproducible
         batch_size = data.num_graphs
         n_submodels = len(self.submodel_dict)
-        all_model_means = zeros((n_submodels, batch_size)).to(self.device)
-        all_model_vars = zeros((n_submodels, batch_size)).to(self.device)
-        # TODO: Parallelize?
-        prop = data.prop
-        for i, model in self.submodel_dict.items():
-            model_passes = zeros((n_passes, batch_size)).to(self.device)
-            infer._model_eval_mode(model, dropout_mode="train")
-            for j in range(n_passes):
+        if monte_carlo:
+            all_model_means = zeros((n_submodels, batch_size)).to(self.device)
+            all_model_vars = zeros((n_submodels, batch_size)).to(self.device)
+            # TODO: Parallelize?
+            for i, model in self.submodel_dict.items():
+                model_passes = zeros((n_passes, batch_size)).to(self.device)
+                for j in range(n_passes):
+                    output = model(data).view(
+                        batch_size,
+                    )
+                    output = tensor(
+                        [
+                            self.scalers[str(ind_prop)].inverse_transform(val)
+                            for (ind_prop, val) in zip(data.prop, output)
+                        ]
+                    ).view(
+                        batch_size,
+                    )
+                    model_passes[j, :] = output
+
+                all_model_means[i, :] = model_passes.mean(dim=0)
+                all_model_vars[i, :] = model_passes.var(dim=0)
+
+            # MC-ensemble uncertainty
+            mean = all_model_means.mean(dim=0)
+            var = (all_model_vars + all_model_means.square() - mean.square()).mean(
+                dim=0
+            )
+
+            return mean.view(data.num_graphs,), var.sqrt().view(
+                data.num_graphs,
+            )
+        else:
+            all_model_preds = (
+                zeros((n_submodels, batch_size, self.submodel_dict[0].output_dim))
+                .squeeze(-1)
+                .to(self.device)
+            )
+            # TODO: Parallelize?
+            for i, model in self.submodel_dict.items():
                 output = model(data).view(
                     batch_size,
                 )
-                scaled_output = tensor(
+                output = tensor(
                     [
                         self.scalers[str(ind_prop)].inverse_transform(val)
-                        for (ind_prop, val) in zip(prop, output)
+                        for (ind_prop, val) in zip(data.prop, output)
                     ]
                 ).view(
                     batch_size,
                 )
-                model_passes[j, :] = scaled_output
-
-            all_model_means[i, :] = model_passes.mean(dim=0)
-            all_model_vars[i, :] = model_passes.var(dim=0)
-
-        # MC-ensemble uncertainty
-        mean = all_model_means.mean(dim=0)
-        var = (all_model_vars + all_model_means.square() - mean.square()).mean(dim=0)
-
-        return mean.view(data.num_graphs,), var.sqrt().view(
-            data.num_graphs,
-        )
+                all_model_preds[i] = output
+            return (
+                all_model_preds.mean(dim=0).squeeze(),
+                all_model_preds.std(dim=0).squeeze(),
+            )
