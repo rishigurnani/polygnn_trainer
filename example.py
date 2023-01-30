@@ -34,7 +34,6 @@ HP_NCALLS = 10
 MAX_BATCH_SIZE = 50
 capacity_ls = list(range(2, 6))
 weight_decay = 0
-N_PASSES = 2
 PROPERTY_GROUPS = {
     "electronic": [
         "Egc",
@@ -74,6 +73,7 @@ train_data, test_data = train_test_split(
     random_state=RANDOM_SEED,
 )
 assert len(train_data) > len(test_data)
+
 
 def morgan_featurizer(smile):
     smile = smile.replace("*", "H")
@@ -252,7 +252,7 @@ for group in PROPERTY_GROUPS:
         dataframe=group_test_data,
         smiles_featurizer=morgan_featurizer,
         device=device,
-        ensemble_kwargs_dict={"n_passes": N_PASSES},
+        ensemble_kwargs_dict={"monte_carlo": False},
     )
     pt.utils.mt_print_metrics(
         y, y_mean_hat, _selectors, scaler_dict, inverse_transform=False
