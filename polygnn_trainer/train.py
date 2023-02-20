@@ -113,7 +113,7 @@ def train_submodel(
         val_pts (List[pyg.data.Data]): The validation data.
         scalers (Dict[str, polygnn_trainer.scale.SequentialScaler]): Scalers for
             each property/task being modeled.
-        tc (torch_commons.train.trainConfig)
+        tc (trainConfig)
         break_bad_grads (bool):  If True, we will exit the training loop
             after noticing exploding/vanishing gradients early in training.
             If False, we will re-initialize the model after noticing
