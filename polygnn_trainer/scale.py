@@ -68,6 +68,9 @@ class SequentialScaler:
 
         return string
 
+    def __eq__(self, __o: object) -> bool:
+        return str(self) == str(__o)
+
 
 class Scaler:
     def __init__(self):
