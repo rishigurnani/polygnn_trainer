@@ -67,7 +67,7 @@ class LinearEnsemble(nn.Module):
                 + "as it may lead to large errors in prediction. However, for "
                 + "backwards compatibility, MC dropout is the default option. "
                 + "You can turn it off by setting `monte_carlo` to `False` in "
-                + "the __init__ method of this class."
+                + "the forward method of this class."
             )
             warnings.warn(warn_msg)
             dropout_mode = "train"
