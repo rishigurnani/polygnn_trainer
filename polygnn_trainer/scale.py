@@ -63,7 +63,9 @@ class SequentialScaler:
         return all([scaler.is_linear() for scaler in self.scaler_ls])
 
     def __str__(self) -> str:
-        string = "Forward: " + " --> ".join(str(scaler) for scaler in self.scaler_ls)
+        string = (
+            "Forward(" + " --> ".join(str(scaler) for scaler in self.scaler_ls) + ")"
+        )
 
         return string
 

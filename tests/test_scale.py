@@ -82,5 +82,5 @@ def test_string():
     MyScaler.append(MinMaxScaler())
     MyScaler.fit_transform(data)
     assert (
-        str(MyScaler) == "Forward: LogTenScaler --> MinMaxScaler(max: 2.0, min: -2.0)"
+        str(MyScaler) == "Forward(LogTenScaler --> MinMaxScaler(max: 2.0, min: -2.0))"
     )
