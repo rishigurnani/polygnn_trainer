@@ -1,9 +1,8 @@
 # These scalers are all implemented with PyTorch so that they can be used
 # on a GPU, if necessary. These scalers are only written for use
 # on ***labels***, not features
-
-from torch import tensor, log10, Tensor, clone
-from torch import float as torch_float
+import ast
+import torch
 from .utils import sorted_attrs
 
 
@@ -68,6 +67,42 @@ class SequentialScaler:
 
         return string
 
+    def format_tensorlike(self, data):
+        """
+        Format 'data' as a torch tensor
+        """
+        if not isinstance(data, torch.Tensor):
+            data = torch.tensor(data, dtype=torch.float)
+        # do not store gradients because we do not need to compute dLoss/dy
+        if data.is_leaf:
+            data.requires_grad = False
+        return data
+
+    def from_string(self, string):
+        # Strings prior to June 7th, 2022 contained a colon. The colon
+        # was removed after this date.
+        if "Forward: " in string:
+            string = string.replace("Forward: ", "")
+        else:
+            if "Forward(" in string:
+                string = string.replace("Forward(", "")
+                string = string[:-1]  # remove the trailing ")"
+        if string:
+            str_list = string.split(" --> ")
+            for individual_str in str_list:
+                if "(" in individual_str:
+                    left_paren_idx = individual_str.index("(")
+                    scaler_name = individual_str[:left_paren_idx]
+                    scaler_cls = globals()[scaler_name]
+                    scaler = scaler_cls.from_string(individual_str)
+                    self.append(scaler)
+                else:
+                    # If individual_str does not contain "(" then the
+                    # corresponding scaler does not need any inputs to
+                    # __init__.
+                    scaler = globals()[individual_str]()
+                    self.append(scaler)
+
     def __eq__(self, __o: object) -> bool:
         return str(self) == str(__o)
 
@@ -110,12 +145,34 @@ class Scaler:
 
         pass
 
+    @classmethod
+    def format_tensorlike(cls, data):
+        """
+        Format 'data' as a torch tensor.
+        """
+        if not isinstance(data, torch.Tensor):
+            data = torch.tensor(data, dtype=torch.float)
+        # do not store gradients because we do not need to compute dLoss/dy
+        if data.is_leaf:
+            data.requires_grad = False
+        return data
+
+    @classmethod
+    def string_to_tensor(cls, string):
+        """
+        Format a tensor string to a tensor.
+            Ex. string='tensor([1., 2.])'
+        """
+        return cls.format_tensorlike(
+            ast.literal_eval(string.replace("tensor(", "").replace(")", ""))
+        )
+
     def fmt_input(self, y):
         """
         Format 'y' as a torch tensor
         """
-        if not isinstance(y, Tensor):
-            y = tensor(y, dtype=torch_float)
+        if not isinstance(y, torch.Tensor):
+            y = torch.tensor(y, dtype=torch.float)
         # do not store gradients because we do not need to compute dLoss/dy
         if y.is_leaf:
             y.requires_grad = False
@@ -134,6 +191,26 @@ class Scaler:
             attr_str = ", ".join([f"{k}: {v}" for k, v in attrs])
             return f"{self_class_name}({attr_str})"
 
+    @classmethod
+    def dim_from_string(cls, string):
+        # get the "dim" value
+        if "dim: " in string:
+            # extract as dim as an integer-like string
+            value = string.split("dim: ")[1].split(",")[0].replace(")", "")
+            value = int(value)
+        else:
+            value = 0
+        return value
+
+    @classmethod
+    def from_string(cls, string):
+        """
+        The default from_string method for Scaler objects. This method
+        should be overwritten in child classes that contain
+        arguments in their __init__ method.
+        """
+        return cls()
+
 
 class ZeroMeanScaler(Scaler):
     def __init__(self):
@@ -143,7 +220,7 @@ class ZeroMeanScaler(Scaler):
 
     def fit(self, y):
         y = self.fmt_input(y)
-        self.mean = clone(y).mean()
+        self.mean = torch.clone(y).mean()
 
     def transform(self, y):
         y = self.fmt_input(y)
@@ -161,6 +238,15 @@ class ZeroMeanScaler(Scaler):
         else:
             raise AttributeError(".fit() should be called before .inverse_transform()")
 
+    @classmethod
+    def from_string(cls, string):
+        scaler = cls()
+        # set "mean" attribute.
+        value = string.split("mean: ")[1]  # tensor string
+        value = cls.string_to_tensor(value)
+        setattr(scaler, "mean", value)
+        return scaler
+
 
 class LogTenScaler(Scaler):
     def __init__(self):
@@ -169,7 +255,7 @@ class LogTenScaler(Scaler):
 
     def transform(self, y):
         y = self.fmt_input(y)
-        y = log10(y)
+        y = torch.log10(y)
 
         return y
 
@@ -186,7 +272,7 @@ class LogTenDeltaScaler(Scaler):
 
     def transform(self, y):
         y = self.fmt_input(y)
-        y = log10(y + 1)
+        y = torch.log10(y + 1)
 
         return y
 
@@ -204,8 +290,8 @@ class MinMaxScaler(Scaler):
     def fit(self, y):
         y = self.fmt_input(y)
 
-        self.min = clone(y).min()
-        self.max = clone(y).max()
+        self.min = torch.clone(y).min()
+        self.max = torch.clone(y).max()
 
     def transform(self, y):
         y = self.fmt_input(y)
@@ -216,6 +302,21 @@ class MinMaxScaler(Scaler):
         y = self.fmt_input(y)
 
         return y * (self.max - self.min) + self.min
+
+    @classmethod
+    def from_string(cls, string):
+        scaler = cls()
+        # set the "max" attribute
+        max_value = string.split("max: ")[1].split("min: ")[0][
+            :-2
+        ]  # tensor-like string
+        max_value = cls.string_to_tensor(max_value)
+        setattr(scaler, "max", max_value)
+        # set the "min" attribute
+        min_value = string.split("min: ")[1]
+        min_value = cls.string_to_tensor(min_value)
+        setattr(scaler, "min", min_value)
+        return scaler
 
 
 class ProductScaler(Scaler):
@@ -233,6 +334,20 @@ class ProductScaler(Scaler):
         y = self.fmt_input(y)
 
         return y / self.multiplier
+
+    @classmethod
+    def from_string(cls, string):
+        # get "multiplier" attribute
+        value = string.split("multiplier: ")[1]  # tensor-like string
+        value = cls.string_to_tensor(value)
+        if cls == ProductScaler:
+            return cls(
+                multiplier=value,
+            )
+        elif cls == QuotientScaler:
+            return cls(
+                divisor=1 / value,
+            )
 
 
 class QuotientScaler(ProductScaler):
