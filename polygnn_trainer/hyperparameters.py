@@ -8,9 +8,13 @@ passable_types = {
 
 
 class Parameter:
-    def __init__(self, pass_type):
+    def __init__(self, pass_type, value=None, options=None):
         self.pass_type = pass_type
-        self.value = None
+        self.options = options
+        if value == None:
+            self.value = None
+        else:
+            self.set_value(value)
 
     def set_value(self, value):
         if self.pass_type == callable:
@@ -44,8 +48,8 @@ class Parameter:
 
 
 class ModelParameter(Parameter):
-    def __init__(self, pass_type):
-        super().__init__(pass_type)
+    def __init__(self, pass_type, value=None):
+        super().__init__(pass_type, value=value)
 
 
 class HpConfig:
@@ -63,6 +67,11 @@ class HpConfig:
         self.activation = ModelParameter(callable)
 
     def set_values(self, dictionary):
+        """
+        Create attributes from "dictionary". One attribute will be
+        created per key in "dictionary", only if the attribute
+        already exists. Otherwise, it will be ignored.
+        """
         for key, val in dictionary.items():
             if hasattr(self, key):
                 param = getattr(self, key)
@@ -72,3 +81,6 @@ class HpConfig:
         attrs = sorted_attrs(self)
         attrs_str = ", ".join([f"{k}: {v}" for k, v in attrs])
         return "{" + attrs_str + "}"
+
+    def __eq__(self, __o: object) -> bool:
+        return str(self) == str(__o)
