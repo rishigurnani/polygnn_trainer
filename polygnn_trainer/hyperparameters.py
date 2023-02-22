@@ -1,5 +1,6 @@
 import numpy as np
-from .utils import sorted_attrs
+from polygnn_trainer import scale, utils
+from torch import nn
 
 passable_types = {
     int: [int, np.int64],
@@ -78,9 +79,41 @@ class HpConfig:
                 param.set_value(val)
 
     def __str__(self):
-        attrs = sorted_attrs(self)
-        attrs_str = ", ".join([f"{k}: {v}" for k, v in attrs])
+        attrs = utils.sorted_attrs(self)
+        attrs_str = "; ".join([f"{k}: {v}" for k, v in attrs])
         return "{" + attrs_str + "}"
+
+    def set_values_from_string(
+        self,
+        string,
+        extras={
+            "leaky_relu": nn.functional.leaky_relu,
+            "kaiming_normal_": nn.init.kaiming_normal_,
+            "kaiming_uniform_": nn.init.kaiming_uniform_,
+            "xavier_uniform_": nn.init.xavier_uniform_,
+            "xavier_normal_": nn.init.xavier_normal_,
+        },
+    ):
+        string = string.replace("{", "").replace("}", "")
+        attrs_list = string.split("; ")
+        dictionary = {}
+        for attr in attrs_list:
+            name, value = tuple(attr.split(": ", 1))
+            pass_type = getattr(self, name).pass_type
+            if pass_type == scale.SequentialScaler:
+                scaler = scale.SequentialScaler()
+                scaler.from_string(value)
+                value = scaler
+            elif pass_type == callable:
+                value = extras[value]
+            else:
+                if value == "None":
+                    value = None
+                else:
+                    value = pass_type(value)
+            dictionary[name] = value
+
+        self.set_values(dictionary)
 
     def __eq__(self, __o: object) -> bool:
         return str(self) == str(__o)
