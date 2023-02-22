@@ -1,13 +1,13 @@
 from polygnn_trainer.os import path_join
 from polygnn_trainer.hyperparameters import HpConfig
-from os import listdir
+from os import listdir, path
 import pickle
 from torch import load as torch_load
 from re import search, compile
 
 
 from . import constants as ks
-from . import models
+from . import models, load2
 
 
 def get_selectors_path(root):
@@ -89,14 +89,26 @@ def load_ensemble(root_dir, submodel_cls, device, submodel_kwargs_dict):
         device (torch.device)
         submodel_kwargs_dict: Other arguments needed to instantiate the submodel
     """
-    # load hps
-    hps_path = path_join(root_dir, ks.METADATA_DIR, ks.HPS_FILENAME)
-    with open(hps_path, "rb") as f:
-        hps = pickle.load(f)
-    # load scalers
-    scalers_path = path_join(root_dir, ks.METADATA_DIR, ks.SCALERS_FILENAME)
-    with open(scalers_path, "rb") as f:
-        scalers = pickle.load(f)
+    # #########
+    # Load hps
+    # #########
+    hps_path_pkl = path_join(root_dir, ks.METADATA_DIR, ks.HPS_FILENAME)
+    # Use the txt file if it exists.
+    if path.exists(load2.pkl_to_txt(hps_path_pkl)):
+        hps = load2.load_hps(root_dir)
+    else:
+        with open(hps_path_pkl, "rb") as f:
+            hps = pickle.load(f)
+    # #############
+    # Load scalers
+    # #############
+    scalers_path_pkl = path_join(root_dir, ks.METADATA_DIR, ks.SCALERS_FILENAME)
+    # Use the json file if it exists.
+    if path.exists(load2.pkl_to_json(scalers_path_pkl)):
+        scalers = load2.load_scalers(root_dir)
+    else:
+        with open(scalers_path_pkl, "rb") as f:
+            scalers = pickle.load(f)
     # get the path to all submodels
     model_dir = path_join(root_dir, ks.MODELS_DIR)
     submodel_paths = sorted(file_filter(model_dir, ks.submodel_re))

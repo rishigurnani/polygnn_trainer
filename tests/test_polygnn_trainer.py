@@ -417,7 +417,7 @@ def test_hp_str(example_unit_sequence, capsys):
     # check that hps are printed correctly
     assert (
         str(example_unit_sequence["hps"])
-        == "{activation: leaky_relu; batch_size: None; capacity: 3; dropout_pct: 0.0; r_learn: None}"
+        == "{activation: leaky_relu; batch_size: None; capacity: 3; dropout_pct: 0.0; graph_feats_scaler: Forward(); initializer: xavier_uniform_; node_feats_scaler: Forward(); norm: identity; optimizer: adam; r_learn: None; swa_freq: 0; swa_start_frac: 0.0; weight_decay: 0.0}"
     )
     # ############################################################
     # check that hps are NOT printed when a layer is instantiated
@@ -461,11 +461,7 @@ def test_HpConfig_set_values_from_string():
     }
     hps.set_values(dictionary)
     result = HpConfig()
-    extras = {
-        "leaky_relu": nn.functional.leaky_relu,
-        "kaiming_normal_": nn.init.kaiming_normal_,
-    }
-    result.set_values_from_string(str(hps), extras)
+    result.set_values_from_string(str(hps))
     assert str(result) == str(hps)
 
 
