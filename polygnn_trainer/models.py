@@ -120,10 +120,7 @@ class LinearEnsemble(nn.Module):
                 data.num_graphs,
             )
         else:
-            all_model_preds = (
-                zeros((n_submodels, batch_size))
-                .to(self.device)
-            )
+            all_model_preds = zeros((n_submodels, batch_size)).to(self.device)
             # TODO: Parallelize?
             for i, model in self.submodel_dict.items():
                 output = model(data).view(
