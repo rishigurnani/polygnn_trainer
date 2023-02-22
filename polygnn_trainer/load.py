@@ -1,4 +1,5 @@
 from polygnn_trainer.os import path_join
+from polygnn_trainer.hyperparameters import HpConfig
 from os import listdir
 import pickle
 from torch import load as torch_load
@@ -7,6 +8,10 @@ from re import search, compile
 
 from . import constants as ks
 from . import models
+
+
+def get_selectors_path(root):
+    return path_join(root, ks.METADATA_DIR, ks.SELECTORS_FILENAME)
 
 
 def file_filter(root_dir, pattern):
@@ -24,21 +29,53 @@ def load_model(path, submodel_cls, **kwargs):
 
 
 def load_selectors(root_dir):
-    selectors_path = path_join(root_dir, ks.METADATA_DIR, ks.SELECTORS_FILENAME)
+    selectors_path = get_selectors_path(root_dir)
     with open(selectors_path, "rb") as f:
         return pickle.load(f)
 
 
+def get_features_path(root_dir):
+    return path_join(root_dir, ks.METADATA_DIR, ks.FEATURE_FILENAME_PKL)
+
+
 def load_features(root_dir):
-    path = path_join(root_dir, ks.METADATA_DIR, ks.FEATURE_FILENAME_PKL)
+    path = get_features_path(root_dir)
     with open(path, "rb") as f:
         return pickle.load(f)
 
 
+def get_scalers_path(root_dir):
+    return path_join(root_dir, ks.METADATA_DIR, ks.SCALERS_FILENAME)
+
+
 def load_scalers(root_dir):
-    scalers_path = path_join(root_dir, ks.METADATA_DIR, ks.SCALERS_FILENAME)
+    scalers_path = get_scalers_path(root_dir)
     with open(scalers_path, "rb") as f:
         return pickle.load(f)
+
+
+def get_hps_path(root_dir):
+    return path_join(root_dir, ks.METADATA_DIR, ks.HPS_FILENAME)
+
+
+def safe_pickle_load(path):
+    with open(path, "rb") as f:
+        return pickle.load(f)
+
+
+def load_hps(root_dir, base_hps=HpConfig()):
+    """
+    Replace the values of `base_hps` with the saved values in `root_dir`.
+    """
+    hps_path = get_hps_path(root_dir)
+    loaded_hps = safe_pickle_load(hps_path)
+    if loaded_hps:
+        assert type(base_hps) == type(
+            loaded_hps
+        ), f"{type(base_hps)}.{type(loaded_hps)}"
+        # If hyperparameters were saved, let's load them into base_hps.
+        base_hps.set_values_from_string(str(loaded_hps))
+    return base_hps
 
 
 def load_ensemble(root_dir, submodel_cls, device, submodel_kwargs_dict):

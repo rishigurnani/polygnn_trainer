@@ -1,7 +1,7 @@
 from os.path import exists
 from polygnn_trainer.os import path_join, makedirs
 from pickle import dump
-
+import json
 from . import constants
 
 
@@ -20,6 +20,9 @@ def safe_save(object, path, save_method):
         elif save_method == "text":
             with open(path, "w") as f:
                 f.write(object)
+        elif save_method == "json":
+            with open(path, "w") as f:
+                json.dump(object, f)
     else:
         raise ValueError(f"{path} already exists. Object was not saved.")
 

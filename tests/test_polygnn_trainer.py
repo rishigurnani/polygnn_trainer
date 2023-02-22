@@ -9,12 +9,11 @@ import random
 import torch
 from sklearn.model_selection import train_test_split
 from polygnn_trainer import __version__
-from polygnn_trainer import save, loss, constants, models
+from polygnn_trainer import save, loss, constants, models, load, load2, save2
 from polygnn_trainer import utils as pt_utils
 from polygnn_trainer.hyperparameters import HpConfig
 from polygnn_trainer.infer import eval_ensemble
 from polygnn_trainer.layers import my_hidden
-from polygnn_trainer.load import load_ensemble, load_selectors
 from polygnn_trainer.train import (
     train_kfold_ensemble,
     train_submodel,
@@ -204,6 +203,49 @@ def test_ensemble_trainer(fixture, request, example_data):
     assert True
 
 
+def test_saveload2_selectors(example_mt_data):
+    """
+    Test that saving/loading selectors in json works.
+    """
+    root = example_mt_data["root"]
+    sel_pkl = load.load_selectors(root)
+    sel_path = load2.pkl_to_json(load.get_selectors_path(root))
+    save2.save_selectors(sel_pkl, sel_path)
+    sel_json = load2.load_selectors(root)
+    # Check that the keys are the same.
+    assert sorted(sel_pkl.keys()) == sorted(sel_json.keys())
+    # Each key has a tensor value. Check equivalence of each key's value
+    # separately.
+    for key in sel_pkl.keys():
+        assert torch.equal(sel_pkl[key], sel_json[key])
+
+
+def test_saveload2_scalers(example_mt_data):
+    """
+    Test that saving/loading scalers in json works.
+    """
+    root = example_mt_data["root"]
+    scal_pkl = load.load_scalers(root)
+    scal_path = load2.pkl_to_json(load.get_scalers_path(root))
+    save2.save_scalers(scal_pkl, scal_path)
+    scal_json = load2.load_scalers(root)
+    # Check that the keys are the same.
+    assert sorted(scal_pkl.keys()) == sorted(scal_json.keys())
+    # Each key has a SequentialScaler value. Check equivalence of each key's value
+    # separately.
+    for key in scal_pkl.keys():
+        assert scal_pkl[key] == scal_json[key]
+
+
+def test_saveload2_hps(example_mt_data):
+    root = example_mt_data["root"]
+    hp_pkl = load.load_hps(root, base_hps=HpConfig())
+    hp_path = load2.pkl_to_txt(load.get_hps_path(root))
+    save2.save_hps(hp_pkl, hp_path)
+    hp_txt = load2.load_hps(root)
+    assert hp_txt == hp_pkl
+
+
 # a mark so that tests are run on both single-task and multi-task data
 @pytest.mark.parametrize("fixture", ["example_st_data", "example_mt_data"])
 def test_load_ensemble_noerror(fixture, request):
@@ -211,11 +253,11 @@ def test_load_ensemble_noerror(fixture, request):
     This test checks that load_ensemble can be performed without error
     """
     data_for_test = request.getfixturevalue(fixture)
-    selectors = load_selectors(data_for_test["root"])
+    selectors = load.load_selectors(data_for_test["root"])
     selector_dim = torch.numel(list(selectors.values())[0])
     # calculate input dimension
     input_dim = 512 + selector_dim
-    ensemble = load_ensemble(
+    ensemble = load.load_ensemble(
         data_for_test["root"],
         models.MlpOut,
         device="cpu",
@@ -229,8 +271,19 @@ def test_load_ensemble_noerror(fixture, request):
 
 
 @pytest.fixture
-def example_linear_data():
+def example_linear_data_root():
     root_dir = "ensemble_linear/"
+    return {"root_dir": root_dir}
+
+
+@pytest.fixture
+def example_linear_data(example_linear_data_root):
+    """
+    This fixture can only be called once, otherwise we'll get a FileExistsError.
+    That's why we also have `example_linear_data_root`, which can be called
+    multiple times.
+    """
+    root_dir = example_linear_data_root["root_dir"]
     graph_feats = [
         {"feat0": 0, "feat1": 0},
         {"feat0": 1, "feat1": 1},
@@ -288,7 +341,7 @@ def test_prepTrainSaveLoad_output(example_linear_data):
     # ####################################
     # load the ensemble and run it forward
     # ####################################
-    ensemble = load_ensemble(
+    ensemble = load.load_ensemble(
         example_linear_data["root_dir"],
         submodel_cls=MathModel1,
         device="cpu",
@@ -324,6 +377,13 @@ def test_prepTrainSaveLoad_output(example_linear_data):
         # of the ensemble matches the transformed output of the submodel
 
 
+def test_load2_features(example_linear_data_root):
+    root = example_linear_data_root["root_dir"]
+    feats_pkl = load.load_features(root)
+    feats_txt = load2.load_features(root)
+    assert feats_pkl == feats_txt, f"{feats_pkl}\n{feats_txt}"
+
+
 @pytest.fixture
 def example_unit_sequence():
     hps = HpConfig()
@@ -357,7 +417,7 @@ def test_hp_str(example_unit_sequence, capsys):
     # check that hps are printed correctly
     assert (
         str(example_unit_sequence["hps"])
-        == "{activation: leaky_relu, batch_size: None, capacity: 3, dropout_pct: 0.0, r_learn: None}"
+        == "{activation: leaky_relu; batch_size: None; capacity: 3; dropout_pct: 0.0; r_learn: None}"
     )
     # ############################################################
     # check that hps are NOT printed when a layer is instantiated
@@ -388,6 +448,25 @@ def test_unit_sequence_MlpOut(example_unit_sequence):
         model.mlp.unit_sequence + [model.output_dim]
         == example_unit_sequence["unit_sequence"]
     )
+
+
+def test_HpConfig_set_values_from_string():
+    hps = HpConfig()
+    dictionary = {
+        "capacity": 3,
+        "dropout_pct": 0.0,
+        "activation": nn.functional.leaky_relu,
+        "r_learn": 0.0,
+        "batch_size": 0,
+    }
+    hps.set_values(dictionary)
+    result = HpConfig()
+    extras = {
+        "leaky_relu": nn.functional.leaky_relu,
+        "kaiming_normal_": nn.init.kaiming_normal_,
+    }
+    result.set_values_from_string(str(hps), extras)
+    assert str(result) == str(hps)
 
 
 @pytest.fixture(scope="session", autouse=True)  # this will tell
