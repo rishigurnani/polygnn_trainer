@@ -2,7 +2,7 @@ import os
 
 curr_file_path = os.path.dirname(os.path.abspath(__file__))
 
-from torch import nn, manual_seed, optim, cuda
+from torch import nn, manual_seed, optim, cuda, tensor, Tensor
 from torch.cuda import amp
 from torch import save as torch_save
 from torch import device as torch_device
