@@ -29,10 +29,6 @@ manual_seed(12)
 np.random.seed(12)
 
 
-def test_version():
-    assert __version__ == "0.1.0"
-
-
 @pytest.fixture
 def example_data():
     properties = ["property1"] * 7 + ["property2"] * 7
