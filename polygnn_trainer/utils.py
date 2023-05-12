@@ -219,7 +219,7 @@ def get_unit_sequence(input_dim, output_dim, n_hidden):
     Start from 'input_dim' and end with 'output_dim'.
 
     Examples:
-    get_unit_sequence(32, 8, 3) = [32, 16, 16, 16, 3]
+    get_unit_sequence(32, 8, 3) = [32, 16, 16, 16, 8]
     """
 
     decrement = lambda x: 2 ** (x // 2 - 1).bit_length()
