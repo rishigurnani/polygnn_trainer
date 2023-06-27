@@ -1,19 +1,27 @@
 from torch import nn, zeros, manual_seed, tensor
-
-from . import constants
-from polygnn_trainer import infer
-from .utils import get_unit_sequence
-from polygnn_trainer import layers
-from .std_module import StandardModule
 import warnings
+
+from . import constants, infer, layers
+from .utils import get_unit_sequence
+from .std_module import StandardModule
 
 
 class MlpOut(StandardModule):
     """
-    This is simply an Mlp layer followed by a my_output layer
+    This class represents an Mlp layer followed by a my_output layer.
+    It extends the StandardModule class.
     """
 
-    def __init__(self, input_dim, output_dim, hps, debug=False):
+    def __init__(self, input_dim: int, output_dim: int, hps, debug=False):
+        """
+        Initialize the MlpOut.
+
+        Args:
+            input_dim (int): Input dimension.
+            output_dim (int): Output dimension.
+            hps (HpConfig): Hyperparameters configuration.
+            debug (bool, optional): Debug mode flag. Defaults to False.
+        """
         super().__init__(hps)
         self.input_dim = input_dim
         self.output_dim = output_dim
@@ -23,6 +31,7 @@ class MlpOut(StandardModule):
         self.unit_sequence = get_unit_sequence(
             self.input_dim, self.output_dim, self.hps.capacity.get_value()
         )
+
         self.mlp = layers.Mlp(
             None,
             None,
@@ -30,13 +39,25 @@ class MlpOut(StandardModule):
             self.debug,
             self.unit_sequence[:-1],
         )
+
         self.outlayer = layers.my_output(self.unit_sequence[-2], self.unit_sequence[-1])
 
     def forward(self, data):
-        x = self.assemble_data(data)
-        x = self.mlp(x)
+        """
+        Perform forward pass through the model.
 
-        return self.outlayer(x)
+        Args:
+            data: Input data.
+
+        Returns:
+            Tensor: Output tensor.
+        """
+
+        data.yhat = data.x
+        data.yhat = self.assemble_data(data)
+        data.yhat = self.mlp(data.yhat)
+
+        return self.outlayer(data.yhat)
 
 
 class LinearEnsemble(nn.Module):

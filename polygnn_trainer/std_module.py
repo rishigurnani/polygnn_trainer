@@ -1,42 +1,59 @@
 import inspect
+from copy import deepcopy
 from torch import nn, cat
+
 from polygnn_trainer.constants import PACKAGE_NAME
 from polygnn_trainer.hyperparameters import HpConfig, ModelParameter
-from copy import deepcopy
-
 from polygnn_trainer.utils import module_name
 
 
 class StandardModule(nn.Module):
+    """
+    A standard module that extends nn.Module.
+    """
+
     def __init__(self, hps: HpConfig):
+        """
+        Initialize the StandardModule.
+
+        Args:
+            hps (HpConfig): Hyperparameters configuration.
+        """
         super().__init__()
         hp_copy = deepcopy(hps)
+
         if hp_copy:
-            # delete attributes that are not of type ModelParameter
+            # Delete attributes that are not of type ModelParameter
             del_attrs = []
             for attr_name, obj in hp_copy.__dict__.items():
                 if not isinstance(obj, ModelParameter):
-                    # log those attributes that are not of
-                    # type ModelParameter so we can delete
-                    # them later. They need to be deleted
-                    # later so that the dictionary size does
-                    # not change during the for loop.
+                    # Log attributes that are not of type ModelParameter
+                    # so they can be deleted later. They need to be deleted
+                    # later to avoid changing the dictionary size during the loop.
                     del_attrs.append(attr_name)
+
             for attr in del_attrs:
                 delattr(hp_copy, attr)
-        # assign hp_copy to self
+
+        # Assign the modified copy of hyperparameters to self.hps
         self.hps = hp_copy
-        # We only want to print hps when a model is instantiated. So,
-        # below we will check that "self" is indeed a model.
+
+        # Print hps when a model is instantiated
         if module_name(self) == f"{PACKAGE_NAME}.models":
             print(f"\nHyperparameters after model instantiation: {self.hps}")
-            # we also want to make sure that "data" is the first argument
-            # of the model's "forward" method
+
+            # Check if "data" is the first argument of the model's "forward" method
             named_args = inspect.getfullargspec(self.forward)[0]
             assert "data" in named_args
 
     def assemble_data(self, data):
-        x, graph_feats, selector = data.x, data.graph_feats, data.selector
-        x = cat((x, graph_feats, selector), dim=1)
+        """
+        Assemble data by concatenating yhat, graph_feats, and selector.
 
-        return x
+        Args:
+            data: Input data.
+
+        Returns:
+            Tensor: Concatenated data tensor.
+        """
+        return cat((data.yhat, data.graph_feats, data.selector), dim=1)

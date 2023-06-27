@@ -18,6 +18,7 @@ class MathModel1(StandardModule):
         self.dummy_attr = dummy_attr
 
     def forward(self, data):
+        data.yhat = data.x
         x = self.assemble_data(data)
 
         return x[:, 0] + x[:, 1] + x[:, 2] - x[:, 3]
@@ -29,6 +30,7 @@ class MathModel2(StandardModule):
         self.hps = hps
 
     def forward(self, data):
+        data.yhat = data.x
         x = self.assemble_data(data)
 
         return x[:, 0] - x[:, 1]
