@@ -1,7 +1,7 @@
 # polygnn_trainer
 This repository contains one of the custom packages used to train the machine learning models presented in a companion paper, [*polyGNN: Multitask graph neural networks for polymer informatics*](https://arxiv.org/abs/2209.13557). Currently, `polygnn_trainer` (pt) contains general code for the following tasks
 - Data preparation
-- Submodel training (and limited analysis of training metrics, provided by the `parse` module)
+- Submodel training (and limited analysis of training metrics, provided by the [`parse`](https://github.com/rishigurnani/polygnn_trainer/tree/main/polygnn_trainer/parse) module)
 - Submodel saving & loading
 - Composing the submodels into an ensemble for inference
 ## Installation
