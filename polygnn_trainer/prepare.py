@@ -108,17 +108,19 @@ def prepare_train(
             and returns its features as a pyg.data.Data object. For
             polymers, the smiles strings should be of type '[*]CC[*]'
             or the equivalent for ladders.
+        root_dir (str): The root directory.
     Outputs:
         dataframe (pd.DataFrame): The input dataframe with two columns
             added: data and selector
         scaler_dict
     """
-    return prepare_data(
+    return _prepare_data(
         dataframe,
         smiles_featurizer,
         True,
         None,
         root_dir,
+        scale_labels=True,
     )
 
 
@@ -127,6 +129,7 @@ def prepare_infer(
     smiles_featurizer,
     selectors,
     root_dir,
+    scale_labels=False,
 ):
     """
     Prepare necessary data for inference.
@@ -140,16 +143,23 @@ def prepare_infer(
         smiles_featurizer: A function that takes in a smiles string
             and returns its features. For polymers, the smiles strings
             are of type '[*]CC[*]' or the equivalent for ladders.
+        selectors (dict): Keys are property names. Values are selector vectors.
+        root_dir (str); The root directory.
+        scale_labels (bool): If True, the "y" values in each Data object
+            will be transformed using the scaler_dict located in root_dir. Do not
+            set this to True if dataframe does not have a "value" column. Defaults
+            to False.
     Outputs:
         dataframe (pd.DataFrame): The input dataframe with two columns
             added: data and selector
     """
-    return prepare_data(
+    return _prepare_data(
         dataframe,
         smiles_featurizer,
         False,
         selectors,
         root_dir,
+        scale_labels=scale_labels,
     )
 
 
@@ -276,12 +286,13 @@ def check_series_keys(dataframe, colname, all_keys, for_train):
             raise ValueError(". ".join(exception_ls))
 
 
-def prepare_data(
+def _prepare_data(
     dataframe,
     smiles_featurizer,
     for_train,
     selectors,
     root_dir,
+    scale_labels,
 ):
     """
     Prepare necessary data. This function is not to be called directly,
@@ -298,6 +309,9 @@ def prepare_data(
             are of type '[*]CC[*]' or the equivalent for ladders.
         for_train (bool): True if dataframe contains training data
         selectors (dict)
+        root_dir (str): The root directory
+        scale_labels (bool): If True, the "y" values in each Data object
+            will be transformed using the scaler_dict located in root_dir.
     """
     prop_cols = prepare_init(dataframe, for_train)
     # convert dictionary-like columns to arrays and save the associated
@@ -393,6 +407,8 @@ def prepare_data(
                 trans_prop_vals = scaler_dict[prop].transform(prop_vals)
                 mm_scaler.fit(trans_prop_vals)  # fit scaler on training data
                 scaler_dict[prop].append(mm_scaler)
+    else:
+        scaler_dict = load.load_scalers(root_dir)
 
     def _get_data(x, valuetype=FloatTensor):
         """
@@ -401,12 +417,12 @@ def prepare_data(
             valuetype: The class to use when converting x["value"] into
                 a tensor.
         """
-
+        if scale_labels:
+            x.value = scaler_dict[x.prop].transform(x.value)  # scale the label
         # We must deepcopy `x["data"]` to avoid a memory issue when using
         # this function inside a DataFrame.apply().
         data = deepcopy(x["data"])
         if for_train:
-
             # If we are training then `data.y` must be set.
             data.y = obj_to_tensor(x.value, valuetype)
         else:
