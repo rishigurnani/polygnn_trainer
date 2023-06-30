@@ -49,8 +49,10 @@ def copy_attribute_safe(
     via, to, attr_name_via, attr_name_to=None, fillna=None, tensortype=FloatTensor
 ):
     """
-    Copy the attr_name attribute from the source object to the target object,
-    if the attribute exists. Each attribute created here will not require gradients.
+    Safely copy the attr_name attribute from the source object to the target object,
+    if the attribute exists. Safe, because if the attribute does not exist, then we
+    pass without raising an error. Each attribute created here will not require
+    gradients.
 
     Args:
         via: The source object to copy the attribute from.
@@ -64,9 +66,6 @@ def copy_attribute_safe(
 
     Returns:
         None
-
-    Raises:
-        ValueError: If neither an attribute to copy nor a tensor to fill were found.
     """
     # If attr_name_to is not set, let's set it equal to attr_name_via
     if not attr_name_to:
@@ -83,17 +82,12 @@ def copy_attribute_safe(
 
     # If the "via" object does not have the attribute, then we can fill it
     # with whatever is specified in "fillna".
-    elif not fillna:
+    elif fillna is not None:
         # Make sure what the user put in fillna is a Tensor
         assert isinstance(fillna, Tensor)
 
         # Transfer the attribute
         setattr(to, attr_name_to, fillna)
-
-    else:
-        raise ValueError(
-            "Neither an attribute to copy nor a tensor to fill were found."
-        )
 
 
 def prepare_train(

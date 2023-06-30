@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "polygnn_trainer"
-version = "0.5.1"
+version = "0.5.2"
 description = ""
 authors = ["Rishi Gurnani <rgurnani96@gmail.com>"]
 
