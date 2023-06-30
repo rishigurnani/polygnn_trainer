@@ -3,58 +3,97 @@ import numpy as np
 from torch import Tensor, FloatTensor
 from pandas import get_dummies, options
 from polygnn_trainer.os import path_join
-
-options.mode.chained_assignment = None  # set to None to avoid erroneous warnings
 from torch_geometric.data import Data
 
-from .scale import *
-from polygnn_trainer import save
+options.mode.chained_assignment = None  # set to None to avoid erroneous warnings
+
+from polygnn_trainer.scale import *
+from polygnn_trainer import save, load
 from polygnn_trainer import constants as ks
-from polygnn_trainer import load
 
 
-def obj_to_tensor(obj):
+def obj_to_tensor(obj, tensortype=FloatTensor, requires_grad=False):
     """
-    Convert an input object to a Tensor. This
-    will work unless obj is a str. In this case,
-    obj will be left as a numpy str
+    Convert an input object to a Tensor. This will work unless obj is a str.
+    In this case, obj will be left as a numpy str.
+
+    Args:
+        obj: The input object to convert.
+        tensortype: The desired tensor type (default: FloatTensor).
+        requires_grad (bool): Do gradients need to be computed for obj? (default: False).
+
+    Returns:
+        The converted tensor object.
     """
-    if not isinstance(obj, Tensor):
-        obj = np.array(obj)
+
+    # If the object is already the correct type of tensor, just return as is.
+    if isinstance(obj, tensortype):
+        return obj
+
+    obj = np.array(obj)
+
+    # If the object is a string, just return before converting it into a tensor.
+    if obj.dtype.type == np.str_:
+        return obj
+    else:
         ndim = len(obj.shape)
-        if ndim == 1:
+        if ndim < 2:
             obj = np.expand_dims(obj, axis=0)
-        if obj.dtype.type == np.str_:
-            pass
-        else:
-            obj = FloatTensor(obj)
-            obj.requires_grad = False
+        obj = tensortype(obj)
+        obj.requires_grad = requires_grad
 
     return obj
 
 
-def copy_attribute_safe(via, to, attr_name_via, attr_name_to=None, fillna=None):
+def copy_attribute_safe(
+    via, to, attr_name_via, attr_name_to=None, fillna=None, tensortype=FloatTensor
+):
     """
-    Copy the attr_name attribute from row or data point to x to data point data,
-    if the attribute exits. Each attribute created here will not require
-    gradients.
+    Copy the attr_name attribute from the source object to the target object,
+    if the attribute exists. Each attribute created here will not require gradients.
+
+    Args:
+        via: The source object to copy the attribute from.
+        to: The target object to copy the attribute to.
+        attr_name_via: The name of the attribute in the source object.
+        attr_name_to: The name of the attribute in the target object
+            (default: None, which is equivalent to attr_name_via).
+        fillna: The value to fill in the target attribute if the source attribute
+            is not found (default: None).
+        tensortype: The desired tensor type (default: FloatTensor).
+
+    Returns:
+        None
+
+    Raises:
+        ValueError: If neither an attribute to copy nor a tensor to fill were found.
     """
-    # if attr_name_to is not set. Let's set it equal to  attr_name_via
+    # If attr_name_to is not set, let's set it equal to attr_name_via
     if not attr_name_to:
         attr_name_to = attr_name_via
+
     if hasattr(via, attr_name_via):
         obj = getattr(via, attr_name_via)
-        # handle the typing of tens
-        tens = obj_to_tensor(obj)
-        # OK, now we are ready to transfer the attribute
+
+        # Handle the typing of tensors
+        tens = obj_to_tensor(obj, tensortype)
+
+        # Transfer the attribute
         setattr(to, attr_name_to, tens)
-    # if the "via" object does not have the attribute, then we can fill it
-    # with whatever is specified in "fillna"
-    elif fillna != None:
-        # make sure what the user put in fillna is a Tensor
+
+    # If the "via" object does not have the attribute, then we can fill it
+    # with whatever is specified in "fillna".
+    elif not fillna:
+        # Make sure what the user put in fillna is a Tensor
         assert isinstance(fillna, Tensor)
-        # OK, now we are ready to transfer the attribute
+
+        # Transfer the attribute
         setattr(to, attr_name_to, fillna)
+
+    else:
+        raise ValueError(
+            "Neither an attribute to copy nor a tensor to fill were found."
+        )
 
 
 def prepare_train(
@@ -361,53 +400,74 @@ def prepare_data(
                 mm_scaler.fit(trans_prop_vals)  # fit scaler on training data
                 scaler_dict[prop].append(mm_scaler)
 
-    def get_data(x):
-        # prepare smiles-based features
-        if smiles_featurizer:
-            data = smiles_featurizer(x.smiles_string)
-        else:
-            data = Data(x=empty_input_tensor())
+    def _get_data(x, valuetype=FloatTensor):
+        """
+        Keyword arguments
+            x (pd.Series): A dataframe row
+            valuetype: The class to use when converting x["value"] into
+                a tensor.
+        """
+
+        # We must deepcopy `x["data"]` to avoid a memory issue when using
+        # this function inside a DataFrame.apply().
+        data = deepcopy(x["data"])
         if for_train:
-            # if we are training then data.y must be set
-            y = scaler_dict[x.prop].transform(x.value)  # scale the label
-            data.y = obj_to_tensor(y)
-            # during training if "selector", "graph_feats", or "node_feats"
-            # are missing, we should fill it with an empty tensor
+
+            # If we are training then `data.y` must be set.
+            data.y = obj_to_tensor(x.value, valuetype)
+        else:
+
+            # For inference, we may or may not need `data.y`.
+            copy_attribute_safe(x, data, "value", ks._Y, tensortype=valuetype)
+
+        # Prepare the selector.
+        copy_attribute_safe(x, data, ks._F_SELECTORS, fillna=empty_input_tensor())
+
+        # Prepare the node-features.
+        if node_srt_keys == ["<empty>"]:
             fillna = empty_input_tensor()
         else:
-            # for inference, we may or may not need data.y
-            copy_attribute_safe(x, data, "value", ks._Y)
-            # during inference, we do not support filling
-            # missing attributes of rows. So we set fillna to None
             fillna = None
 
-        # prepare selector
-        copy_attribute_safe(x, data, ks._F_SELECTORS, fillna=deepcopy(fillna))
-        # prepare node-features
         copy_attribute_safe(
             via=x,
             to=data,
             attr_name_via=f"{ks._F_NODE}_array",
             attr_name_to=ks._F_NODE,
-            fillna=deepcopy(fillna),
+            fillna=fillna,
         )
-        # prepare graph-features
+
+        # Prepare the graph-features.
+        if graph_srt_keys == ["<empty>"]:
+            fillna = empty_input_tensor()
+        else:
+            fillna = None
+
         copy_attribute_safe(
             via=x,
             to=data,
             attr_name_via=f"{ks._F_GRAPH}_array",
             attr_name_to=ks._F_GRAPH,
-            fillna=deepcopy(fillna),
+            fillna=fillna,
         )
         if not for_train:
-            # if we are not training, then we need to copy "prop" over
-            # to make sure we scale correctly inside the ensemble
+
+            # If we are not training, then we need to copy "prop" over
+            # to make sure we scale correctly inside the ensemble.
             copy_attribute_safe(x, data, "prop")
 
         return data
 
-    # prepare Data object for each row in dataframe
+    # Prepare Data object for each row in dataframe.
+    if smiles_featurizer:
+        dataframe["data"] = [
+            smiles_featurizer(sm) for sm in dataframe.smiles_string.values
+        ]
+    else:
+        dataframe["data"] = [Data(x=empty_input_tensor())] * len(dataframe)
+    get_data = lambda x: _get_data(x, FloatTensor)
     dataframe["data"] = dataframe.apply(get_data, axis=1)
+
     if for_train:
         return dataframe, scaler_dict
     else:
