@@ -484,44 +484,51 @@ def _prepare_data(
         return dataframe
 
 
-def prepare_init(
-    dataframe,
-    for_train,
-):
+def prepare_init(dataframe, for_train):
     """
-    Initial steps for data preparation
+    Initial steps for data preparation.
 
-    Keyword arguments:
-        dataframe (pd.DataFrame): A dataframe consisting of two columns:
-            prop, value. Optional columns are: smiles_string, node_feats,
-            and graph_feats. This dataframe should not contain any na.
-        smiles_featurizer: A function that takes in a smiles string
-            and returns its features. For polymers, the smiles strings
-            are of type '[*]CC[*]' or the equivalent for ladders.
+    Args:
+        dataframe (pd.DataFrame): A DataFrame consisting of two columns (prop & value)
+            and at least one of the following columns: smiles_string, node_feats, or
+            graph_feats.
+
+            This DataFrame should not contain any NaN values.
+
+        for_train (bool): True if the DataFrame contains training data.
+
+    Returns:
+        list: Sorted list of property names.
+
+    Raises:
+        ValueError: If the DataFrame contains null values.
+        KeyError: If the 'prop' key is not present in the DataFrame or if the 'value'
+            key is not present in the DataFrame (for training data).
+        KeyError: If none of the following keys are present in the DataFrame:
+            'graph_feats', 'node_feats', 'smiles_string'.
     """
-    # error handling
+    # Error handling
     if dataframe.isnull().sum().sum() > 0:
-        raise ValueError("Datafame contains null values")
-    if not hasattr(dataframe, "prop"):
-        raise KeyError(f"Key 'prop' not present in dataframe. Cannot process data.")
-    if for_train and not hasattr(dataframe, "value"):
-        raise KeyError(
-            f"Key 'value' not present in dataframe. Cannot process training data."
-        )
+        raise ValueError("DataFrame contains null values")
+    if "prop" not in dataframe:
+        raise KeyError("Key 'prop' not present in DataFrame. Cannot process data.")
+    if for_train and "value" not in dataframe:
+        raise KeyError("Key 'value' not present in DataFrame. Cannot process data.")
     if not (
-        hasattr(dataframe, ks._F_GRAPH)
-        or hasattr(dataframe, ks._F_NODE)
-        or hasattr(dataframe, "smiles_string")
+        ks._F_GRAPH in dataframe
+        or ks._F_NODE in dataframe
+        or "smiles_string" in dataframe
     ):
         raise KeyError(
-            f"None of the following keys are present in dataframe: 'graph_feats', 'node_feats', 'smiles_string'. Cannot process data."
+            "None of the following keys are present in dataframe: "
+            + f"'{ks._F_GRAPH}', '{ks._F_NODE}', 'smiles_string'. Cannot process data."
         )
-    # ##############
-    prop_cols = sorted(
-        dataframe["prop"].unique().tolist()
-    )  # sorted list of property names
+
+    # Generate a sorted list of property names.
+    prop_cols = sorted(dataframe["prop"].unique().tolist())
     print(f"The following properties will be modeled: {prop_cols}", flush=True)
-    # count the number of data points in each class
+
+    # Count the number of data points in each class.
     # TODO: Speed this up.
     for prop in prop_cols:
         n_prop_data = len(dataframe[dataframe["prop"] == prop])
