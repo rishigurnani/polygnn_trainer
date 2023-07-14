@@ -495,9 +495,7 @@ def prepare_init(
         dataframe (pd.DataFrame): A dataframe consisting of two columns:
             prop, value. Optional columns are: smiles_string, node_feats,
             and graph_feats. This dataframe should not contain any na.
-        smiles_featurizer: A function that takes in a smiles string
-            and returns its features. For polymers, the smiles strings
-            are of type '[*]CC[*]' or the equivalent for ladders.
+        for_train (bool): True if dataframe contains training data
     """
     # error handling
     if dataframe.isnull().sum().sum() > 0:
