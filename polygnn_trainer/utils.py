@@ -154,7 +154,7 @@ def analyze_gradients(named_parameters, allow_errors=False):
                 layers.append(n)
             except Exception as e:
                 warnings.warn(
-                    "The parameter {n} has the following invalid gradient:\n{p.grad}."
+                    f"The parameter {n} has the following invalid gradient:\n{p.grad}."
                 )
                 if allow_errors:
                     pass
