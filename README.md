@@ -25,14 +25,14 @@ A usage pattern may look something like below:
   ```python
   import polygnn_trainer as pt
   ```
-- Then, create a "melted" pandas Dataframe offline. Melting is usually required for multi-task models. Split this dataset into training+val and test set. It is required that node features and graph features are provided in several dictionaries; one dictionary per row of the melted dataframe.
-- Pass the training+val DataFrame into `pt.train.prepare_train`. The outputs will be the dataframe, updated with featurized data, and dictionary of scalers. One scaler per task. Additionally, some metadata on training features will be saved to path input to `root_dir`. This will be useful to order features during inference.
+- Then, create a pandas Dataframe out of the data set (see [here](https://github.com/rishigurnani/polygnn_trainer/blob/main/sample_data/sample.csv) for an example CSV data set, note that you can distinguish between tasks using the "prop" column). Split this dataset into training+val and test set. It is required that graph features are provided in several dictionaries; one dictionary per row of the dataframe.
+- Pass the training+val DataFrame into `pt.train.prepare_train`. The outputs will be the dataframe, with SMILES converted to features, and dictionary of scalers. One scaler per task. Additionally, some metadata on training features will be saved to path input to `root_dir`. This will be useful to order features during inference.
   ```python    
   dataframe, scaler_dict = prepare_train(
       "dataframe", morgan_featurizer, root_dir=/path/to/model/root/
   )
   ```
-- Offline, split the training+val DataFrame into two DataFrames. One for validation one for training. See the example snippet below.
+- Split the training+val DataFrame into two DataFrames using your favorite splitting strategy (example shown below). One DataFrame for validation and one for training. See the example snippet below.
   ```python    
    training_df, val_df = sklearn.model_selection.train_test_split(
       dataframe,
@@ -41,12 +41,12 @@ A usage pattern may look something like below:
       random_state=constants.RANDOM_SEED,        
    )
   ```
-- Offline, run hyperparameter optimization. Use the error on the validation set to find the optimal set. See the example snippet below. The unittest named `test_ensemble_trainer` contains a more detailed, working, example.
+- Run hyperparameter optimization using your favorite algorithm (example shown below). Use the error on the validation set to find the optimal set. See the example snippet below. The unittest named `test_ensemble_trainer` contains a more detailed, working, example. Unittests are located in [this folder](https://github.com/rishigurnani/polygnn_trainer/tree/main/tests).
   ```python    
   from skopt import gp_minimize
   # obtain the optimal point in hp space
   opt_obj = gp_minimize(
-      func=obj_func, # define this offline
+      func=obj_func, # define this yourself
       dimensions=hp_space,
       n_calls=10,
       random_state=0,
@@ -63,7 +63,7 @@ A usage pattern may look something like below:
     }
   )
   ```
-- Train an ensemble of submodels using `pt.train.train_kfold_ensemble`. Use the optimized hyperparameters in the `model_constructor`. Again, `test_ensemble_trainer` contains a nice working example. If the ensemble is being trained for research, we can train the ensemble using just the train+val set. If the ensemble is being trained for production, we can train the ensemble on the ***entire*** data set. The details of the model and its metadata will be stored in a root directory. The contents of that directory are as follows:
+- Train an ensemble of submodels using `pt.train.train_kfold_ensemble`. Again, `test_ensemble_trainer` contains a nice working example. If the ensemble is being trained for research, we can train the ensemble using just the train+val set (so that we have the test set to assess model accuracy). If the ensemble is being trained for production, we can train the ensemble on the ***entire*** data set. The details of the model and its metadata will be stored in a root directory. The contents of that directory are as follows:
    ```
   root
   │
@@ -80,7 +80,7 @@ A usage pattern may look something like below:
       │   model_1.pt
       │   ...
   ```
-- Offline, prepare a melted data frame of points to run inference on. Again, it is required that node features and graph features are provided in several dictionaries; one dictionary per row of the melted dataframe.
+- Prepare a DataFrame of points to run inference on. Again, it is required that graph features are provided in several dictionaries; one dictionary per row of the melted dataframe.
 - Load the ensemble using `pt.load.load_ensemble`. Fields needed to instantiate the submodels can be passed into `submodel_kwargs_dict`.
   ```python
   ensemble = pt.load.load_ensemble(
@@ -90,7 +90,7 @@ A usage pattern may look something like below:
     submodel_kwargs_dict={},
   )
   ```
-- Run inference on the ensemble using `pt.infer.eval_ensemble`. See below for example usage. In this example, if the loaded ensemble is a `LinearEnsemble` then `n_passes` will need to be passed in as a `kwarg`. Likewise, the `forward` method of other models may require other fields. Each of these fields can be passed into `ensemble_kwargs_dict`.
+- Run inference on the ensemble using `pt.infer.eval_ensemble`. See below for example usage.
   ```python
   y_val, y_val_mean_hat, y_val_std_hat, selectors = pt.infer.eval_ensemble(
     ensemble,
@@ -98,7 +98,7 @@ A usage pattern may look something like below:
     dataframe,
     smiles_featurizer,
     device,
-    ensemble_kwargs_dict={}
+    ensemble_kwargs_dict={"monte_carlo": False},
   )
   ```
 ### `example.py`
