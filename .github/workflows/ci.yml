@@ -12,6 +12,8 @@ jobs:
         python-version: 3.7
     - name: 'Set up Poetry'
       uses: snok/install-poetry@v1
+      with:
+        version: 1.6.1
     - name: 'Install dependencies'
       run: poetry install --no-interaction --no-root
     - name: 'Install PyTorch'
