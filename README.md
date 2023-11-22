@@ -21,7 +21,11 @@ This repository is currently set up to run on 1) Mac OSX and 2) Linux/Windows ma
 ## Usage
 ### General usage
 A usage pattern may look something like below:
-- Create a "melted" pandas Dataframe offline. Melting is usually required for multi-task models. Split this dataset into training+val and test set. It is required that node features and graph features are provided in several dictionaries; one dictionary per row of the melted dataframe.
+- First, import `polygnn_trainer`
+  ```python
+  import polygnn_trainer as pt
+  ```
+- Then, create a "melted" pandas Dataframe offline. Melting is usually required for multi-task models. Split this dataset into training+val and test set. It is required that node features and graph features are provided in several dictionaries; one dictionary per row of the melted dataframe.
 - Pass the training+val DataFrame into `pt.train.prepare_train`. The outputs will be the dataframe, updated with featurized data, and dictionary of scalers. One scaler per task. Additionally, some metadata on training features will be saved to path input to `root_dir`. This will be useful to order features during inference.
   ```python    
   dataframe, scaler_dict = prepare_train(
