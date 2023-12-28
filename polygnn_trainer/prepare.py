@@ -8,7 +8,7 @@ from torch_geometric.data import Data
 options.mode.chained_assignment = None  # set to None to avoid erroneous warnings
 
 from polygnn_trainer.scale import *
-from polygnn_trainer import save, load
+from polygnn_trainer import save, load, load2
 from polygnn_trainer import constants as ks
 
 
@@ -408,7 +408,11 @@ def _prepare_data(
                 mm_scaler.fit(trans_prop_vals)  # fit scaler on training data
                 scaler_dict[prop].append(mm_scaler)
     else:
-        scaler_dict = load.load_scalers(root_dir)
+        try:
+            scaler_dict = load.load_scalers(root_dir)
+        # If load.load_scalers didn't work, maybe load2.load_scalers will ...
+        except:
+            scaler_dict = load2.load_scalers(root_dir)
 
     def _get_data(x, valuetype=FloatTensor):
         """
