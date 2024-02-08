@@ -5,6 +5,7 @@ from torch_geometric.loader import DataLoader
 
 from polygnn_trainer import constants
 from polygnn_trainer.load import load_ensemble, load_selectors
+from polygnn_trainer.load2 import load_selectors as load_selectors2
 
 from .prepare import prepare_infer
 
@@ -72,7 +73,10 @@ def eval_ensemble(
         y_selectors (np.ndarray): Selector for each data point
     """
     model.to(device)
-    selectors = load_selectors(root_dir)
+    try:
+        selectors = load_selectors(root_dir)
+    except FileNotFoundError:
+        selectors = load_selectors2(root_dir)
     selector_dim = len(selectors)
     # prepare dataframe
     dataframe = prepare_infer(
