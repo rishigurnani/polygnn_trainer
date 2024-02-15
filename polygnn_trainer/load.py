@@ -30,8 +30,11 @@ def load_model(path, submodel_cls, **kwargs):
 
 def load_selectors(root_dir):
     selectors_path = get_selectors_path(root_dir)
-    with open(selectors_path, "rb") as f:
-        return pickle.load(f)
+    try:
+        with open(selectors_path, "rb") as f:
+            return pickle.load(f)
+    except FileNotFoundError:
+        return load2.load_selectors(root_dir)
 
 
 def get_features_path(root_dir):
@@ -40,8 +43,11 @@ def get_features_path(root_dir):
 
 def load_features(root_dir):
     path = get_features_path(root_dir)
-    with open(path, "rb") as f:
-        return pickle.load(f)
+    try:
+        with open(path, "rb") as f:
+            return pickle.load(f)
+    except FileNotFoundError:
+        return load2.load_features(root_dir)
 
 
 def get_scalers_path(root_dir):
@@ -50,8 +56,11 @@ def get_scalers_path(root_dir):
 
 def load_scalers(root_dir):
     scalers_path = get_scalers_path(root_dir)
-    with open(scalers_path, "rb") as f:
-        return pickle.load(f)
+    try:
+        with open(scalers_path, "rb") as f:
+            return pickle.load(f)
+    except FileNotFoundError:
+        return load2.load_scalers(root_dir)
 
 
 def get_hps_path(root_dir):
@@ -67,15 +76,18 @@ def load_hps(root_dir, base_hps=HpConfig()):
     """
     Replace the values of `base_hps` with the saved values in `root_dir`.
     """
-    hps_path = get_hps_path(root_dir)
-    loaded_hps = safe_pickle_load(hps_path)
-    if loaded_hps:
-        assert type(base_hps) == type(
-            loaded_hps
-        ), f"{type(base_hps)}.{type(loaded_hps)}"
-        # If hyperparameters were saved, let's load them into base_hps.
-        base_hps.set_values_from_string(str(loaded_hps))
-    return base_hps
+    try:
+        hps_path = get_hps_path(root_dir)
+        loaded_hps = safe_pickle_load(hps_path)
+        if loaded_hps:
+            assert type(base_hps) == type(
+                loaded_hps
+            ), f"{type(base_hps)}.{type(loaded_hps)}"
+            # If hyperparameters were saved, let's load them into base_hps.
+            base_hps.set_values_from_string(str(loaded_hps))
+        return base_hps
+    except FileNotFoundError:
+        return load2.load_hps(root_dir)
 
 
 def load_ensemble(root_dir, submodel_cls, device, submodel_kwargs_dict):
