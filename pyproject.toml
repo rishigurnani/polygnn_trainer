@@ -15,7 +15,7 @@ pytest = "^5.2"
 scikit-optimize = {git = "https://github.com/rishigurnani/scikit-optimize.git", rev = "master"}
 rdkit-pypi = "^2021.9.3"
 poethepoet = "^0.10.0"
-black = "^22.3.0"
+black = "^20.8b1"
 
 [tool.poe.tasks]
 torch-osx = "pip install torch==1.9.1 torchvision==0.10.1 torchaudio==0.9.1"

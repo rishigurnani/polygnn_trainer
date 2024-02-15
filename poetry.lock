@@ -1,4 +1,12 @@
 [[package]]
+name = "appdirs"
+version = "1.4.4"
+description = "A small Python module for determining appropriate platform-specific dirs, e.g. a \"user data dir\"."
+category = "dev"
+optional = false
+python-versions = "*"
+
+[[package]]
 name = "atomicwrites"
 version = "1.4.0"
 description = "Atomic file writes."
@@ -22,26 +30,25 @@ tests_no_zope = ["coverage[toml] (>=5.0.2)", "hypothesis", "pympler", "pytest (>
 
 [[package]]
 name = "black"
-version = "22.3.0"
+version = "20.8b1"
 description = "The uncompromising code formatter."
 category = "dev"
 optional = false
-python-versions = ">=3.6.2"
+python-versions = ">=3.6"
 
 [package.dependencies]
-click = ">=8.0.0"
+appdirs = "*"
+click = ">=7.1.2"
 mypy-extensions = ">=0.4.3"
-pathspec = ">=0.9.0"
-platformdirs = ">=2"
-tomli = {version = ">=1.1.0", markers = "python_version < \"3.11\""}
-typed-ast = {version = ">=1.4.2", markers = "python_version < \"3.8\" and implementation_name == \"cpython\""}
-typing-extensions = {version = ">=3.10.0.0", markers = "python_version < \"3.10\""}
+pathspec = ">=0.6,<1"
+regex = ">=2020.1.8"
+toml = ">=0.10.1"
+typed-ast = ">=1.4.0"
+typing-extensions = ">=3.7.4"
 
 [package.extras]
 colorama = ["colorama (>=0.4.3)"]
-d = ["aiohttp (>=3.7.4)"]
-jupyter = ["ipython (>=7.8.0)", "tokenize-rt (>=3.2.0)"]
-uvloop = ["uvloop (>=0.15.2)"]
+d = ["aiohttp (>=3.3.2)", "aiohttp-cors"]
 
 [[package]]
 name = "click"
@@ -168,18 +175,6 @@ docs = ["furo", "olefile", "sphinx (>=2.4)", "sphinx-copybutton", "sphinx-issues
 tests = ["check-manifest", "coverage", "defusedxml", "markdown2", "olefile", "packaging", "pyroma", "pytest", "pytest-cov", "pytest-timeout"]
 
 [[package]]
-name = "platformdirs"
-version = "2.5.2"
-description = "A small Python module for determining appropriate platform-specific dirs, e.g. a \"user data dir\"."
-category = "dev"
-optional = false
-python-versions = ">=3.7"
-
-[package.extras]
-docs = ["furo (>=2021.7.5b38)", "proselint (>=0.10.2)", "sphinx-autodoc-typehints (>=1.12)", "sphinx (>=4)"]
-test = ["appdirs (==1.4.4)", "pytest-cov (>=2.7)", "pytest-mock (>=3.6)", "pytest (>=6)"]
-
-[[package]]
 name = "pluggy"
 version = "0.13.1"
 description = "plugin and hook calling mechanisms for python"
@@ -298,6 +293,14 @@ numpy = ">=1.19"
 Pillow = "*"
 
 [[package]]
+name = "regex"
+version = "2023.12.25"
+description = "Alternative regular expression module, to replace re."
+category = "dev"
+optional = false
+python-versions = ">=3.7"
+
+[[package]]
 name = "scikit-learn"
 version = "1.0.2"
 description = "A set of python modules for machine learning and data mining"
@@ -324,6 +327,7 @@ description = "Sequential model-based optimization toolbox."
 category = "dev"
 optional = false
 python-versions = "*"
+develop = false
 
 [package.dependencies]
 joblib = ">=0.11"
@@ -334,6 +338,12 @@ scipy = ">=0.19.1"
 
 [package.extras]
 plots = ["matplotlib (>=2.0.0)"]
+
+[package.source]
+type = "git"
+url = "https://github.com/rishigurnani/scikit-optimize.git"
+reference = "master"
+resolved_reference = "5cb03623cad47209d65ae47ecd1f1b164dd5a025"
 
 [[package]]
 name = "scipy"
@@ -363,12 +373,12 @@ optional = false
 python-versions = ">=3.6"
 
 [[package]]
-name = "tomli"
-version = "2.0.1"
-description = "A lil' TOML parser"
+name = "toml"
+version = "0.10.2"
+description = "Python Library for Tom's Obvious, Minimal Language"
 category = "dev"
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=2.6, !=3.0.*, !=3.1.*, !=3.2.*"
 
 [[package]]
 name = "tomlkit"
@@ -417,9 +427,10 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "8fbde55aedcf0a3c36ebd4fdad4423348482daef84c295d77684678124664880"
+content-hash = "8c68ebf3e0b1c0b914bc589ce65bc15022c262dc77e3a5d3d725c4c22ff959f2"
 
 [metadata.files]
+appdirs = []
 atomicwrites = []
 attrs = []
 black = []
@@ -435,7 +446,6 @@ pandas = []
 pastel = []
 pathspec = []
 pillow = []
-platformdirs = []
 pluggy = []
 poethepoet = []
 py = []
@@ -446,12 +456,13 @@ python-dateutil = []
 pytz = []
 pyyaml = []
 rdkit-pypi = []
+regex = []
 scikit-learn = []
 scikit-optimize = []
 scipy = []
 six = []
 threadpoolctl = []
-tomli = []
+toml = []
 tomlkit = []
 typed-ast = []
 typing-extensions = []
